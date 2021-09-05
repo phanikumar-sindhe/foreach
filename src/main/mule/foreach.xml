@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="39d7cbe7-f594-4ef1-af9f-75d869656763" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="57c47206-098a-49d9-bfdb-ffc7081a672a" >
+		<file:connection workingDir="F:\Mulesoft\input" />
+	</file:config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="7effee7a-a3ca-43cb-8502-b04dfb7129c9" >
+		<file:connection workingDir="F:\Mulesoft\output" />
+	</file:config>
+	<flow name="foreachFlow" doc:id="81ed8619-ef22-47b4-8036-1948265eb948" >
+		<http:listener doc:name="For Each" doc:id="fc23d487-c3c8-4e0c-99be-9aaf88bb4e29" config-ref="HTTP_Listener_config" path="/foreach"/>
+		<logger level="INFO" doc:name="Logger" doc:id="8e027fbb-49f6-4782-adb0-f5256f649493" message="Flow Started"/>
+		<file:read doc:name="Read CSV File" doc:id="7e0f2cf3-4116-4c37-a0f0-9e4936e537ab" config-ref="File_Config" path="F:\Mulesoft\input\list.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="8d19cf1b-d953-4f76-9b56-3a7a5945d6e8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Id: payload01.Id,
+	Name: payload01.Name,
+	Department: payload01.Department
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="c9ce3cb9-a662-4fe3-815b-dde7ac18329f" >
+			<try doc:name="Try" doc:id="58571b0e-68d6-44e3-b5f1-2cc007736206" >
+				<validation:is-number doc:name="Is number" doc:id="d9574a19-d867-421c-87f7-ff728ad6ab3b" value="#[payload.Id]" numberType="INTEGER" />
+				<file:write doc:name="Write" doc:id="1292a044-b2ee-460f-9096-71eba369d349" config-ref="File_Config1" path='#[payload.Id ++ ".txt"]' />
+			</try>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="573e37ca-db50-484c-a904-880d5f9ba5d2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="f7bf26c2-37a7-4333-ad76-efcf9eef03a6" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ebdd975c-e939-4e99-b5e4-08b91bc2a111">
+						<set-payload value='#["Id is must an Integer value"]' doc:name="Set Payload" doc:id="21105377-566a-48f1-bb17-3bbb480aca78" />
+					</on-error-continue>
+		</error-handler>
+	</flow>
+	<sub-flow name="foreachSub_Flow" doc:id="4ece8177-7e7d-43ed-950b-cfe8324ab5d4" >
+		<parallel-foreach doc:name="Parallel For Each" doc:id="c7c44612-a87c-4404-a4d2-58a46ecdd319">
+			<try doc:name="Try" doc:id="6f086f2c-bedb-4d0c-bb6e-9725a881a538">
+				<validation:is-number numberType="INTEGER" doc:name="Is number" doc:id="48799b12-a797-4032-a5a4-95a964c74477" value="#[payload.Id]" />
+				<file:write doc:name="Write" doc:id="dcf57634-4780-40fd-9aa0-1af3f8eca191" config-ref="File_Config1" path='#[payload.Id ++ ".txt"]' />
+				<error-handler>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a9e9445c-84d5-449f-8816-e57a45be22b3">
+				<set-payload value='#["Id is must a number"]' doc:name="Set Payload" doc:id="190f0bd8-8e37-4049-95aa-7bda91e7c0c2" />
+			</on-error-continue>
+				</error-handler>
+			</try>
+		</parallel-foreach>
+	</sub-flow>
+	<flow name="foreachFlow1" doc:id="31495aad-a52b-473c-b4dc-c72c90f6f2fe" >
+		<http:listener doc:name="Listener" doc:id="f956b1a9-783a-44b7-9452-84d71aec9d31" config-ref="HTTP_Listener_config" path="/pforeach"/>
+		<logger level="INFO" doc:name="Logger" doc:id="7a328b60-8187-4880-80d9-663970e317a7" />
+		<file:read doc:name="Read" doc:id="36756fb5-25f0-48ad-a1d6-edfcc19a0dd0" config-ref="File_Config" path="F:\Mulesoft\input\list.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="aa84943f-30df-4110-b455-c1c7085e1a60" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Id: payload01.Id,
+	Name: payload01.Name,
+	Department: payload01.Department
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="c13f3f69-302b-4882-9a56-eb635ab8b530" name="foreachSub_Flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="e7d857e4-9122-4fb7-8484-e55ae048e270" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="56cfe3ff-dc33-45c8-ae11-ba5aa7bad21d" />
+	</flow>
+</mule>

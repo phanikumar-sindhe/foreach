@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="data_json" format="json">
+      <types:shape format="weave" example="examples/data1.json"><![CDATA[%dw 2.0
+
+type data_json = Array<{|  Id: Number {"typeId": "int"},   Name: String,   Department: String|}> {"example": "[{\\\"Id\\\":1244,\\\"Name\\\":\\\"Phani\\\",\\\"Department\\\":\\\"Development\\\"},{\\\"Id\\\":1245,\\\"Name\\\":\\\"Srinu\\\",\\\"Department\\\":\\\"Development\\\"}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="data_csv" format="csv">
+      <types:shape format="weave"><![CDATA[%dw 2.0
+
+type data_csv = Array<{|  Id: Number,   Name: String,   Department: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#8d19cf1b-d953-4f76-9b56-3a7a5945d6e8">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="data_csv"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="data_json"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#aa84943f-30df-4110-b455-c1c7085e1a60">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="data_csv"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="data_json"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
